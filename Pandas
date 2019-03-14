@@ -1,0 +1,252 @@
+#根据条件新建列并赋值
+frame['panduan'] = frame.city.apply(lambda x: 1 if 'ing' in x else 0)
+df.B[df.A>4] = 0
+df['F'] = np.nan
+df.col1[df.col1 =='a'] = 'm'
+
+#strftime to_datetime 
+import time
+t = time.localtime()
+s = time.strftime( '2019-01-19')
+ts = pd.to_datetime(s)
+dt = pd.datetime.strptime(s,'%Y-%m-%d')
+dt.year
+ts.quarter
+pd.date_range('20130101',periods=6)
+
+#用pandas将时间转为标准格式
+date (UTC) Price 
+01/01/2015 0:00 48.1 
+01/01/2015 1:00 47.33 
+01/01/2015 2:00 42.27
+dateparse = lambda dates: pd.datetime.strptime(dates,'%d/%m/%Y %H:%M')
+#将时间栏合并,并转为标准时间格式
+rawdata = pd.read_csv('RealMarketPriceDataPT.csv',parse_dates={'timeline':['date','(UTC)']},date_parser=dateparse)
+
+
+# toordinal()将时间格式字符串转为数字
+num = datetime.datetime.strptime(s,'%Y-%m-%d %H:%M:%S').toordinal()
+datetime.datetime.fromordinal(num)
+## map from a string to a number to prepare it for machine learning algorithms.
+sexes = sorted(df_train['Sex'].unique())
+genders_mapping = dict(zip(sexes, range(0, len(sexes) + 1)))
+df_train['Sex_Val'] = df_train['Sex'].map(genders_mapping).astype(int)
+# 'yes'/'no' has to be converted to boolean values
+# NumPy converts these from boolean to 1. and 0. later
+yes_no_cols = ["Int'l Plan","VMail Plan"]
+churn_feat_space[yes_no_cols] = churn_feat_space[yes_no_cols] == 'yes'
+y = np.where(churn_result == 'True.',1,0)
+
+
+# normalized cross tab
+sex_val_xt = pd.crosstab(df_train['Sex_Val'], df_train['Survived'])
+sex_val_xt_pct = sex_val_xt.div(sex_val_xt.sum(1).astype(float), axis=0)
+
+## missing values
+if len(df_train[df_train['Embarked'].isnull()] > 0):
+df_train.replace({'Embarked_Val' : 
+{ embarked_locs_mapping[nan] : embarked_locs_mapping['S'] 
+}
+}, 
+inplace=True)
+
+
+# To keep Age in tact, make a copy of it called AgeFill 
+# that we will use to fill in the missing ages:
+df_train['AgeFill'] = df_train['Age']
+# Populate AgeFill
+df_train['AgeFill'] = df_train['AgeFill'] \
+.groupby([df_train['Sex_Val'], df_train['Pclass']]) \
+.apply(lambda x: x.fillna(x.median()))
+
+# then verify
+embarked_locs = sorted(df_train['Embarked_Val'].unique())
+
+## Show only the columns of type 'object' (strings):
+df_train.dtypes[df_train.dtypes.map(lambda x: x == 'object')]
+
+
+## create a new column 'D' and assign to it a value computed from the other columns
+df.eval('D = (A + B) / C', inplace=True)
+
+## check the approximate size of your array in bytes
+df.values.nbytes
+
+## groups data into discrete bins
+df = pd.DataFrame({'value': np.random.randint(0, 100, 20)})
+labels = ["{0} - {1}".format(i, i + 9) for i in range(0, 100, 10)]
+df['group'] = pd.cut(df.value, range(0, 105, 10), right=False, labels=labels)
+
+## find incomplete_rows
+sample_incomplete_rows = housing[housing.isnull().any(axis=1)].head()
+
+
+## converts column names to snake case or rename column names
+def cleanup_column_names(df,rename_dict={},do_inplace=True):
+"""This function renames columns of a pandas dataframe
+It converts column names to snake case if rename_dict is not passed. 
+Args:
+rename_dict (dict): keys represent old column names and values point to 
+newer ones
+do_inplace (bool): flag to update existing dataframe or return a new one
+Returns:
+pandas dataframe if do_inplace is set to False, None otherwise
+
+"""
+if not rename_dict:
+return df.rename(columns={col: col.lower().replace(' ','_') 
+for col in df.columns.values.tolist()}, 
+inplace=do_inplace)
+else:
+return df.rename(columns=rename_dict,inplace=do_inplace)
+
+## """This function generates descriptive stats of a dataframe
+Args:
+df (dataframe): the dataframe to be analyzed
+Returns:
+None
+
+""" 
+def describe_dataframe(df=pd.DataFrame()):
+
+print("\n\n")
+print("*"*30)
+print("About the Data")
+print("*"*30)
+
+print("Number of rows::",df.shape[0])
+print("Number of columns::",df.shape[1])
+print("\n")
+
+print("Column Names::",df.columns.values.tolist())
+print("\n")
+
+print("Column Data Types::\n",df.dtypes)
+print("\n")
+
+print("Columns with Missing Values::",df.columns[df.isnull().any()].tolist())
+print("\n")
+
+print("Number of rows with Missing Values::",len(pd.isnull(df).any(1).nonzero()[0].tolist()))
+print("\n")
+
+print("Sample Indices with missing data::",pd.isnull(df).any(1).nonzero()[0].tolist()[0:5])
+print("\n")
+
+print("General Stats::")
+print(df.info())
+print("\n")
+
+print("Summary Stats::")
+print(df.describe())
+print("\n")
+
+print("Dataframe Sample Rows::")
+display(df.head(5))
+
+## Select specific rows
+df.iloc[[10,501,20]]
+df.ix[10:50]
+
+
+## Exclude Specific Row indices
+df.drop([0,24,51], axis=0)
+
+## Map : Create a derived attribute using map
+def expand_user_type(u_type):
+"""This function maps user types to user classes
+Args:
+u_type (str): user type value
+Returns:
+(str) user_class value
+
+"""
+if u_type in ['a','b']:
+return 'new'
+elif u_type == 'c':
+return 'existing'
+elif u_type == 'd':
+return 'loyal_existing'
+else:
+return 'error'
+
+df['user_class'] = df['user_type'].map(expand_user_type)
+
+# Apply: Using apply to get attribute ranges
+display(df.select_dtypes(include=[np.number]).apply(lambda x: 
+x.max()- x.min()))
+
+# Applymap: Extract week from date
+df['purchase_week'] = df[['date']].applymap(lambda dt:dt.week 
+if not pd.isnull(dt.week) 
+else 0)
+
+## Missing Values
+# Drop Rows with missing dates
+df_dropped = df.dropna(subset=['date'])
+# Fill Missing Price values with mean price
+df_dropped['price'].fillna(value=np.round(df.price.mean(),decimals=2),
+inplace=True)
+
+# Duplicates
+# Drop Duplicate serial_no rows
+df_dropped[df_dropped.duplicated(subset=['serial_no'],inplace=True)
+# Remove rows which have less than 3 attributes with non-missing data
+df.dropna(thresh=3)
+
+## Encode Categoricals
+# One Hot Encoding using get_dummies()
+pd.get_dummies(df,columns=['user_type']
+
+# Label Mapping
+type_map={'a':0,'b':1,'c':2,'d':3,np.NAN:-1}
+df['encoded_user_type'] = df.user_type.map(type_map)
+
+## Random Sampling data from DataFrame
+df.sample(frac=0.2, replace=True, random_state=42)
+
+## Normalizing Numeric Values
+# Min-Max Scaler
+from sklearn import preprocessing
+df_normalized = df.dropna().copy()
+min_max_scaler = preprocessing.MinMaxScaler()
+np_scaled = min_max_scaler.fit_transform(df_normalized['price'].values.reshape(-1,1))
+df_normalized['price'] = np_scaled.reshape(-1,1)
+
+# using Robust Scaler'
+df_normalized = df.dropna().copy()
+robust_scaler = preprocessing.RobustScaler()
+rs_scaled = robust_scaler.fit_transform(df_normalized['quantity_purchased'].values.reshape(-1,1))
+df_normalized['quantity_purchased'] = rs_scaled.reshape(-1,1)
+
+## Data Summarization
+# Condition based aggregation
+print("Mean price of items purchased by user_type=a :: {}".format(df['price'][df['user_type']=='a'].mean()))
+# Group by with multiple agg for each attribute
+display(df.groupby(['user_class','user_type']).agg({'price':{
+'total_price':np.sum,
+'mean_price':np.mean,
+'variance_price':np.std,
+'count':np.count_nonzero},
+'quantity_purchased':np.sum}))
+
+## fill nan
+from numpy import nan
+df.iloc[4,2] = nan
+
+## 按某列值排序
+df.sort_values(by="sales" , ascending=False) # by 指定列 ascending
+
+## cumsum
+df['cumulative_dis'] = df.distance.cumsum()
+
+## resample 对时间序列数据操作
+# ref: benalexkeen.com/resampling-time-series-data-with-pandas
+# resample by week 
+# AS: Year Start ; A: Year end; Q：Quarter end
+weekly_summary['speed'] = df.speed.resample('W').mean()
+weekly_summary['speed'] = df.speed.resample('W').sum()
+weekly_summary['speed'] = df.cumulative_distance.resample('W').last()
+
+## 窗口函数
+Train['Count'].rolling(10).mean()
