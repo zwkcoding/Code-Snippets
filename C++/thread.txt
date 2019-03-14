@@ -1,0 +1,22 @@
+################
+	boost::thread* processthread_;
+        processthread_(NULL)
+	bool processthreadfinished_ ;
+	processthread_->join();//destructor
+	processthread_ = new boost::thread(boost::bind(&PostProcess::process,this));
+
+
+	void process()
+	{
+		while(!processthreadfinished_) {
+			}	
+	}
+
+################
+
+
+
+
+
+
+

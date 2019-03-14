@@ -1,0 +1,27 @@
+ FILE *fp1 = fopen("roadmap/GPS2meters_roadmap_gps.txt","a");
+    for (int i = 0; i <num_GPS ; ++i) {
+        state_struct tmp_state = Position_GPS_to_Meters( GPS_E[i],GPS_N[i], 0, 0);
+        if(0.1 > tmp_state.position.x || std::isinf(tmp_state.position.x) || std::isnan(tmp_state.position.x) ){
+            break;
+        }
+        fprintf(fp1,"%.9f	%.9f	%f\n",tmp_state.position.x, tmp_state.position.y, vel[i]);
+        control_msgs::Traj_Node tmp;
+        tmp.position.x = tmp_state.position.x;
+        tmp.position.y = tmp_state.position.y;
+        tmp.position.z = 0;
+        tmp.forward = 1;
+        tmp.velocity.linear.x = vel[i];
+        global_path_new.push_back(tmp);
+    }
+    fclose(fp1);
+
+###################
+	std::fstream file_;
+	file_.open("/home/jkj/catkin_ws/result.txt",std::ios::out);
+        file_<<std::setprecision(7)<<rotatemat(0,0)<<" "<<rotatemat(0,1)<<" "<<rotatemat(0,2)<<" "<<temptrans[0]
+	    	<<" "<<rotatemat(1,0)<<" "<<rotatemat(1,1)<<" "<<rotatemat(1,2)<<" "<<-temptrans[2]
+	    	<<" "<<rotatemat(2,0)<<" "<<rotatemat(2,1)<<" "<<rotatemat(2,2)<<" "<<temptrans[1]<<std::endl;
+
+
+
+

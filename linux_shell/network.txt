@@ -1,0 +1,2 @@
+netstat -apn | grep 9999
+ps -aux | grep pid
