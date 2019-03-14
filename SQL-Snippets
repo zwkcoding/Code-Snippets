@@ -1,0 +1,306 @@
+-----------------------------************************-----------------------------
+-----------------------------**********sql**********-----------------------------
+-----------------------------************************-----------------------------
+
+
+-----------------------------************************-----------------------------
+-----------------------------**********hive**********-----------------------------
+-----------------------------************************-----------------------------
+
+-----------------------------**********性能调优**********-----------------------------
+-- 先说结论:能使用group by代替distinc就不要使用distinct
+select count(distinct order_no) from order_snap;
+select count(t.order_no) from (select order_no from order_snap group by order_no) t;
+
+ 
+
+ 
+
+ 
+
+-----------------------------**********建表**********-----------------------------
+--典型的默认创建表
+CREATE TABLE page_view(
+viewTime INT, 
+userid BIGINT,
+page_url STRING, 
+referrer_url STRING,
+ip STRING COMMENT 'IP Address of the User')
+COMMENT 'This is the page view table'
+PARTITIONED BY(dt STRING, country STRING)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\001'
+COLLECTION ITEMS TERMINATED BY '\002'
+MAP KEYS TERMINATED BY '\003'
+STORED AS TEXTFILE;
+
+--创建外部表
+CREATE EXTERNAL TABLE page_view(
+viewTime INT, 
+userid BIGINT,
+page_url STRING, 
+referrer_url STRING,
+ip STRING COMMENT 'IP Address of the User',
+country STRING COMMENT 'country of origination')
+COMMENT 'This is the staging page view table'
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\054'
+STORED AS TEXTFILE
+LOCATION '/user/hadoop/warehouse/page_view';
+-- 复制表结构
+CREATE TABLE empty_table_name LIKE table_name;
+-- create-table-as-selectt (CTAS)
+--简单的方式
+CREATE TABLE new_key_value_store
+AS 
+SELECT (key % 1024) new_key, concat(key, value) key_value_pair FROM key_value_store;
+-- 复杂的方式
+CREATE TABLE new_key_value_store
+ROW FORMAT SERDE "org.apache.hadoop.hive.serde2.columnar.ColumnarSerDe"
+STORED AS RCFile AS
+SELECT (key % 1024) new_key, concat(key, value) key_value_pair
+FROM key_value_store
+SORT BY new_key, key_value_pair;
+
+-- 删除表:删除外部表时，表中的数据不会被删除。
+DROP TABLE table_name;
+DROP TABLE IF EXISTS table_name;
+
+-----------------------------********** Hive - top n records within a group**********-----------------------------
+
+select * from (
+select user_id, value, desc, 
+rank() over ( partition by user_id order by value desc) as rank 
+from test4 ) t where rank < 3;
+
+-----------------------------**********空值处理**********-----------------------------
+
+--底层数据保存的是'\N',通过查询显示的是'NULL'
+alter table name SET SERDEPROPERTIES('serialization.null.format' = '\N');
+-- 底层数据保存的是'NULL',通过查询显示的是'NULL'
+alter table name SET SERDEPROPERTIES('serialization.null.format' = 'NULL');
+a is null a='NULL' --查询为空值的字段、
+--'' 表示的是字段不为null且为空字符串，此时用 a is null 是无法查询这种值的，必须通过 a='' 或者 length(a)=0 查询
+## int与string类型数据存储，null默认存储为 \N； string类型的数据如果为""，存储则是""；
+
+## 不同数据类型，空值的查询 
+对于 int 可以使用 is null 来判断空；
+而对于string类型，条件is null 查出来的是\N的数据；而条件 =’’，查询出来的是""的数据。
+
+-- count,distinct和group by对null值的操作
+distinct 会将所有null视为一项 
+group by 将所有null值视为一项 
+count 不会计算null值项，count(null)=0
+故： COUNT(DISTINCT stayLibraryHallCode)中有null值项+0，count(*)中null值项+1
+
+
+-----------------------------**********count计数**********-----------------------------
+count(*) 所有值不全为NULL时，加1操作
+count(1) 不管有没有值，只要有这条记录，值就加1
+count(col) col列里面的值为null，值不会加1，这个列里面的值不为NULL，才加1
+
+
+-- HIVE 不支持where子句中的子查询，SQL常用的exist in子句需要改写
+SELECT a.key, a.value
+
+FROM a
+
+WHERE a.key in
+
+(SELECT b.key
+
+FROM B);
+
+-- 
+--》
+--
+SELECT a.key, a.value
+
+FROM a LEFT OUTER JOIN b ON (a.key = b.key)
+
+WHERE b.key <> NULL;
+
+-- 更高效
+SELECT a.key, a.val
+
+FROM a LEFT SEMI JOIN b on (a.key = b.key);
+
+
+-----------------------------**********时间日期处理**********-----------------------------
+-- 获取系统当前时间
+select from_unixtime(unix_timestamp(),'yyyy-MM-dd HH:mm:ss'); 
+-- 获取日期中的年/月/日/时/分/秒/周
+with dtime as(select from_unixtime(unix_timestamp(),'yyyy-MM-dd HH:mm:ss') as dt)
+select year(dt),month(dt),day(dt),hour(dt),minute(dt),second(dt),weekofyear(dt)
+from dtime
+
+-- 查看季度
+ceil(month(create_date) / 3.0) as quar
+或
+quarter(create_date)
+
+-- 查看本季度初
+case quarter('2016-05-23')
+
+when 1 then concat(year('2016-05-23'),'-01-01')
+
+when 2 then concat(year('2016-05-23'),'-04-01')
+
+when 3 then concat(year('2016-05-23'),'-07-01')
+
+when 4 then concat(year('2016-05-23'),'-10-01')
+
+end
+
+或
+
+add_months(concat(year('2017-02-23'),'-',substr(concat('0',quarter('2017-02-23')*3+1),-2),'-01'),-3)
+
+
+
+--其他日期函数
+-- 查询当前系统时间(包括毫秒数): current_timestamp; 
+-- 查询当月第几天: dayofmonth(current_date);
+-- 月末: last_day(current_date)
+
+-- 返回时间的最开始年份或月份
+trunc(‘2015-03-17’, ‘MM’) = 2015-03-01
+-- 当月第1天: date_sub(current_date,dayofmonth(current_date)-1) -- data
+-- 下个月第1天: add_months(date_sub(current_date,dayofmonth(current_date)-1),1)
+-- date_add, add_months
+from_unixtime(unix_timestamp(concat(date_add(add_months(from_unixtime(unix_timestamp(),'yyyy-MM-dd hh:mm:ss'),-1),1),' 10:10:10')), 'yyyyMMdd')
+
+-- 转化UNIX时间戳（从1970-01-01 00:00:00 UTC到指定时间的秒数）到当前时区的时间格式
+select from_unixtime(1323308943,’yyyyMMdd’) from dual; -- 20111208
+-- 转换pattern格式的日期到UNIX时间戳。如果转化失败，则返回0。
+select unix_timestamp(’20111207 13:01:03′,’yyyyMMdd HH:mm:ss’) from dual; -- 1323234063
+-- 日期比较函数: datediff语法: datediff(string enddate, string startdate)
+select datediff(’2012-12-08′,’2012-05-09′) from dual;
+-- 日期时间转日期函数: to_date语法: to_date(string timestamp)
+select to_date(’2011-12-08 10:03:01′) from dual; -- 2011-12-08
+-- 日期转年函数: year语法: year(string date)
+select year(’2011-12-08 10:03:01′) from dual; -- 2011
+select year(’2012-12-08′) from dual; -- 2012
+-- 日期转月函数: month语法: month (string date)
+select month(’2011-12-08 10:03:01′) from dual; -- 12
+-- 日期转天函数: day语法: day (string date)
+select day(’2011-12-08 10:03:01′) from dual; -- 8
+-- 返回日期中的小时
+select hour(’2011-12-08 10:03:01′) from dual;
+-- 返回日期在当前的周数。
+select weekofyear(’2011-12-08 10:03:01′) from dual;
+
+-- 用 unix_timestamp 转成unix时间戳，然后计算两个日期相差秒数
+select unix_timestamp(concat(substr('20170728102031',1,4),'-',substr('20170728102031',5,2),'-',substr('20170728102031',7,2),' ',substr('20170728102031',9,2),':',substr('20170728102031',11,2),':',substr('20170728102031',13,2)))
+- unix_timestamp(concat(substr('20170728112031',1,4),'-',substr('20170728112031',5,2),'-',substr('20170728112031',7,2),' ',substr('20170728112031',9,2),':',substr('20170728112031',11,2),':',substr('20170728112031',13,2)))
+
+-----------------------------**********字符串**********-----------------------------
+-- 去除字符串两边的空格
+select trim(' abc ') from lxw_dual;
+-- 左边去空格函数
+select ltrim(' abc ') from lxw_dual;
+-- 字符串转大写函数
+select upper('abSEd') from lxw_dual;
+-- 带分隔符字符串连接函数
+select concat_ws(',','abc','def','gh') from lxw_dual;
+-- 字符串连接函数
+select concat('abc','def','gh') from lxw_dual;
+-- 正则表达式替换函数：regexp_replace
+select regexp_replace('foobar', 'oo|ar', '') from lxw_dual;
+
+ 
+
+
+-----------------------------************************-----------------------------
+-----------------------------**********oracle**********-----------------------------
+-----------------------------************************-----------------------------
+--查询表的创建时间和最后修改时间sql
+SELECT CREATED,LAST_DDL_TIME from user_objects where object_name=upper('表名')
+
+-----------------------------**********时间日期处理**********-----------------------------
+-- 获取系统日期： SYSDATE()
+-- 返回系统日期
+select sysdate from dual;
+-- 返回系统日期,输出 25-12月-09
+select sysdate from dual;
+-- mi是分钟，输出 2009-12-25 14:23:31
+select to_char(sysdate,'yyyy-MM-dd HH24:mi:ss') from dual;
+-- mm会显示月份，输出 2009-12-25 14:12:31
+select to_char(sysdate,'yyyy-MM-dd HH24:mm:ss') from dual;
+-- 输出 09-12-25 14:23:31
+-- TO_CHAR 把日期或数字转换为字符串 TO_CHAR(date, '格式')
+select to_char(sysdate,'yy-mm-dd hh24:mi:ss') from dual 
+-- 输出 2009-12-25 14:23:31
+-- TO_DATE 把字符串转换为数据库中的日期类型 TO_DATE(char, '格式')
+select to_date('2009-12-25 14:23:31','yyyy-mm-dd,hh24:mi:ss') from dual
+
+-- TO_CHAR(date, '格式'),转换的格式
+--
+表示 year 的：y 表示年的最后一位 、
+yy 表示年的最后2位 、
+yyy 表示年的最后3位 、
+yyyy 用4位数表示年
+表示month的： mm 用2位数字表示月 、
+mon 用简写形式， 比如11月或者nov 、
+month 用全称， 比如11月或者november
+表示day的：dd 表示当月第几天 、
+ddd 表示当年第几天 、
+dy 当周第几天，简写， 比如星期五或者fri 、
+day 当周第几天，全称， 比如星期五或者friday
+表示hour的：hh 2位数表示小时 12进制、
+hh24 2位数表示小时 24小时
+表示minute的：mi 2位数表示分钟
+表示second的：ss 2位数表示秒 60进制
+表示季度的：q 一位数 表示季度 （1-4）
+另外还有ww 用来表示当年第几周 w用来表示当月第几周
+-- exam
+-- 输出 2009-12-25 14:23:31
+select to_date('2009-12-25 14:23:31','yyyy-mm-dd,hh24:mi:ss') from dual
+
+-- 提取日期 extract(c1 from d1)
+SQL> select sysdate 当前时间,
+2 extract(DAY from sysdate ) 日,
+3 extract(MONTH from sysdate ) 月,
+4 extract(YEAR from sysdate ) 年
+5 from dual;
+OUTPUT:
+当前时间 日 月 年
+----------- ---------- ---------- ----------
+2015/4/9 20 9 4 2015
+
+-- ratio_to_report 占比函数
+-- Pct1 是求sal在所有sal中的比率, Pct2是求sql在按deptno分组后 所占的比率
+SELECT 
+empno,ename,ename,hiredate,sal,deptno, 
+ratio_to_report(sal) over () as pct1, 
+ratio_to_report(sal) over (partition by deptno) as pct2 
+FROM emp;
+
+-- groupby 多次,利用roll-up
+Select A,B,C,sum(E) from test group by rollup(A,B,C)
+--> 等效于 -->
+Select A,B,C,sum(E) from test group by A,B,C
+
+union all
+
+Select A,B,null,sum(E) from test group by A,B
+
+union all
+
+Select A,null,null,sum(E) from test group by A
+
+union all
+
+Select null,null,null,sum(E) from test
+
+
+-----------------------------**********IN EXIST**********-----------------------------
+-- in()适合B表比A表数据小的情况
+select a.* from A a
+where exists(select 1 from B b where a.id=b.id)
+-- exists()适合B表比A表数据大的情况
+select a.* from A a
+where exists(select 1 from B b where a.id=b.id)
+
+-----------------------------************************-----------------------------
+-----------------------------**********mysql**********-----------------------------
+-----------------------------************************-----------------------------
