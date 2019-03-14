@@ -1,0 +1,7 @@
+################
+#include <glog/logging.h>
+  FLAGS_colorlogtostderr = true; //设置输出到屏幕的日志显示相应颜色
+  LOG(INFO)<<std::fixed<<std::setprecision(2)<<"stamp:"<<stamp;
+
+
+

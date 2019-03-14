@@ -1,0 +1,1 @@
+rosbag record /vehicle_global_pose_topic /traversible_area_topic /ecudatareport

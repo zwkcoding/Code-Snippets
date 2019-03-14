@@ -1,0 +1,48 @@
+# tick time 
+
+void vehiclePoseCb(const nav_msgs::Odometry &sub_tem_global_vehicle_pose) {
+        receive_vehicle_pose = true;
+        last_receive_position_timestamp_for_map_entry = ros::WallTime::now();  // tick time
+
+        received_tem_global_vehicle_pose.header.stamp = sub_tem_global_vehicle_pose.header.stamp;
+        received_tem_global_vehicle_pose.header.frame_id = sub_tem_global_vehicle_pose.header.frame_id;
+        received_tem_global_vehicle_pose.pose.pose.position.x = sub_tem_global_vehicle_pose.pose.pose.position.x;//longitude of the current UGV positon
+        received_tem_global_vehicle_pose.pose.pose.position.y = sub_tem_global_vehicle_pose.pose.pose.position.y;//latitude of the current UGV positon
+        received_tem_global_vehicle_pose.pose.pose.position.z = sub_tem_global_vehicle_pose.pose.pose.position.z;// the following result is pose relative to the start point of UGV
+        received_tem_global_vehicle_pose.pose.pose.orientation.w = sub_tem_global_vehicle_pose.pose.pose.orientation.w;
+        received_tem_global_vehicle_pose.pose.pose.orientation.x = sub_tem_global_vehicle_pose.pose.pose.orientation.x;
+        received_tem_global_vehicle_pose.pose.pose.orientation.y = sub_tem_global_vehicle_pose.pose.pose.orientation.y;
+        received_tem_global_vehicle_pose.pose.pose.orientation.z = sub_tem_global_vehicle_pose.pose.pose.orientation.z;
+    }
+
+void resetFLag() {
+        ros::WallTime end = ros::WallTime::now();
+        double map_elapse_time = (end - last_receive_map_timestamp_for_map_entry).toSec() * 1000;
+        double position_elapse_time = (end - last_receive_position_timestamp_for_map_entry).toSec() * 1000;
+        if (map_elapse_time < 1000) {
+            receive_traversible_map = true;
+        } else {
+            receive_traversible_map = false;
+            ROS_ERROR("Receive traverible map delay exceed time!");
+        }
+        if (position_elapse_time < 1000) {
+            receive_vehicle_pose = true;
+        } else {
+            receive_vehicle_pose = false;
+            ROS_ERROR("Receive vehicle position delay exceed time!");
+        }
+
+    }
+
+while (ros::ok()) {
+        ros::spinOnce();
+        if (!receive_vehicle_pose || !receive_traversible_map) {
+            rate.sleep();
+            continue;
+        }
+
+        resetFLag();
+
+
+
+
