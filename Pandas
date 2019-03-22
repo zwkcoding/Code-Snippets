@@ -1,3 +1,6 @@
+refer to: 
+https://nbviewer.jupyter.org/github/dipanjanS/practical-machine-learning-with-python/blob/master/notebooks/Ch03_Processing_Wrangling_and_Visualizing_Data/notebook_wrangle_data.ipynb
+
 #根据条件新建列并赋值
 frame['panduan'] = frame.city.apply(lambda x: 1 if 'ing' in x else 0)
 df.B[df.A>4] = 0
